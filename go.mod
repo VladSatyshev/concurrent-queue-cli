@@ -2,7 +2,10 @@ module github.com/VladSatyshev/concurrent-queue-cli
 
 go 1.22.1
 
-require github.com/urfave/cli/v2 v2.27.5
+require (
+	github.com/urfave/cli/v2 v2.27.5
+	gopkg.in/yaml.v2 v2.4.0
+)
 
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect

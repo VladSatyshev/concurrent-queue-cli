@@ -3,6 +3,7 @@ package test
 import (
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 
@@ -10,10 +11,34 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const buildPath = "./build/cli"
+
+type cmdExecutor struct {
+	binPath string
+}
+
+func newCmdExecutor(path string) *cmdExecutor {
+	return &cmdExecutor{binPath: path}
+}
+
+func (c *cmdExecutor) Execute(t *testing.T, argsStr string) []byte {
+	cmd := exec.Command(c.binPath, strings.Split(argsStr, " ")...)
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to execute build cli cmd: %s", err.Error())
+	}
+	cmd.Dir = wd
+	res, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("failed to execute command: %s", err.Error())
+	}
+	return res
+}
+
 func prepareConfig(queuesCfg []config.QueueConfig) error {
 	cfg := config.Config{
 		Server: config.ServerConfig{
-			Port:              "8000",
+			Port:              ":8000",
 			Mode:              "Development",
 			Timeout:           5 * time.Second,
 			CtxDefaultTimeout: 10 * time.Second,
@@ -42,10 +67,11 @@ func prepareConfig(queuesCfg []config.QueueConfig) error {
 }
 
 func startServer(t *testing.T) *exec.Cmd {
-	cmd := exec.Command("go", "run", "../concurrent-queue/cmd/main.go", "-config", config.TestConfigPath)
-	cmd.Stdout = nil
-	cmd.Stderr = nil
+	cmd := exec.Command("./build/server", "-config", config.TestConfigPath)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	err := cmd.Start()
+	time.Sleep(time.Millisecond * 200) // wait for server to start
 	if err != nil {
 		t.Fatalf("failed to start server: %v", err)
 	}
@@ -60,29 +86,30 @@ func stopServer(t *testing.T, cmd *exec.Cmd) {
 	}
 }
 
-func buildCli(t *testing.T) *exec.Cmd {
-	cmd := exec.Command("go", "build", "-o", "./build/cli", "../../cmd/main.go")
+func buildCli(t *testing.T, path string) {
+	cmd := exec.Command("go", "build", "-o", path, "./../cmd/main.go")
 	cmd.Stdout = nil
 	cmd.Stderr = nil
-	err := cmd.Start()
+	err := cmd.Run()
 	if err != nil {
-		t.Fatalf("failed to start server: %v", err)
+		t.Fatalf("failed to build cli: %v", err)
 	}
-
-	return cmd
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		t.Fatalf("CLI binary not found at %s after build", path)
+	}
 }
 
-func configureEnvironment(t *testing.T, queuesCfg []config.QueueConfig) func() {
+func configureEnvironment(t *testing.T, queuesCfg []config.QueueConfig) (*cmdExecutor, func()) {
 	err := prepareConfig(queuesCfg)
 	if err != nil {
 		t.Fatalf("failed to configure env: %v", err)
 	}
 
-	cliCmd := buildCli(t)
-
 	cmd := startServer(t)
 
-	return func() {
+	exec := newCmdExecutor(buildPath)
+
+	return exec, func() {
 		stopServer(t, cmd)
 	}
 }

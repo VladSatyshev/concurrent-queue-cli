@@ -2,7 +2,7 @@ package config
 
 import "time"
 
-const TestConfigPath = "../config/test_config.yaml"
+const TestConfigPath = "./config/test_config.yaml"
 
 type Config struct {
 	Server ServerConfig `yaml:"Server"`

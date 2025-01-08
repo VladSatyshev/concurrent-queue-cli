@@ -1,2 +1,3 @@
-/integration_test/build/cli
-/integration_test/config/test_config.yaml
+/build
+/test/build/cli
+/test/config/test_config.yaml

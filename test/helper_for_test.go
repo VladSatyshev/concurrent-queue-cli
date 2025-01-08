@@ -7,7 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/VladSatyshev/concurrent-queue-cli/integration_test/config"
+	"github.com/VladSatyshev/concurrent-queue-cli/client"
+	"github.com/VladSatyshev/concurrent-queue-cli/test/config"
+	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v2"
 )
 
@@ -111,5 +113,36 @@ func configureEnvironment(t *testing.T, queuesCfg []config.QueueConfig) (*cmdExe
 
 	return exec, func() {
 		stopServer(t, cmd)
+	}
+}
+
+func assertEqualQueues(t *testing.T, expectedQueues []client.Queue, actualQueues []client.Queue) {
+	assert.Equal(t, len(expectedQueues), len(actualQueues))
+	for _, aq := range actualQueues {
+		for _, eq := range expectedQueues {
+			if aq.Name == eq.Name {
+				assert.Equal(t, eq, aq)
+			}
+		}
+	}
+}
+
+func assertEqualMessages(t *testing.T, expectedMessages []map[string]interface{}, actualMessages []map[string]interface{}) {
+	assert.Equal(t, len(expectedMessages), len(actualMessages))
+
+	for _, actualMessage := range actualMessages {
+		found := false
+		for _, expectedMessage := range expectedMessages {
+			for _, av := range actualMessage {
+				for _, ev := range expectedMessage {
+					if av == ev {
+						found = true
+					}
+				}
+			}
+		}
+		if !found {
+			t.Error("not equal messages")
+		}
 	}
 }

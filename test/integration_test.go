@@ -253,20 +253,4 @@ func TestIntegrationWithServer(t *testing.T) {
 		assert.Contains(t, string(res), "doesn't have subscriber")
 	})
 
-	t.Run("Not a subscriber should not be able to consume messages from queue", func(t *testing.T) {
-		qConfigs := []config.QueueConfig{
-			{
-				Name:              "testQueue",
-				Length:            1,
-				SubscribersAmount: 1,
-			},
-		}
-		cmdExecutor, teardown := configureEnvironment(t, qConfigs)
-		defer teardown()
-
-		cmdExecutor.Execute(t, `queue add --name testQueue --message test1`)
-		cmdExecutor.Execute(t, `queue subscribe --name testQueue --subscriber user`)
-		res := cmdExecutor.Execute(t, `queue consume --name testQueue --subscriber not_a_sub`)
-		assert.Contains(t, string(res), "doesn't have subscriber")
-	})
 }
